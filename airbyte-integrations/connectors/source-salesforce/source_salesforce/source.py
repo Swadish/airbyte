@@ -10,11 +10,11 @@ import requests
 from airbyte_cdk import AirbyteLogger
 from airbyte_cdk.logger import AirbyteLogFormatter
 from airbyte_cdk.models import AirbyteMessage, AirbyteStateMessage, ConfiguredAirbyteCatalog, ConfiguredAirbyteStream, Level, SyncMode
-from airbyte_cdk.sources import AbstractSource
+from airbyte_cdk.sources.abstract_source_async import AsyncAbstractSource
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.message import InMemoryMessageRepository
 from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.concurrent.adapters import StreamFacade
+from airbyte_cdk.sources.streams.concurrent.adapters_async import AsyncStreamFacade
 from airbyte_cdk.sources.streams.concurrent.cursor import NoopCursor
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import InternalConfig
@@ -32,7 +32,7 @@ class AirbyteStopSync(AirbyteTracedException):
     pass
 
 
-class SourceSalesforce(AbstractSource):
+class SourceSalesforce(AsyncAbstractSource):
     DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
     START_DATE_OFFSET_IN_YEARS = 2
     MAX_WORKERS = 5
@@ -139,7 +139,7 @@ class SourceSalesforce(AbstractSource):
         for stream in streams:
             sync_mode = self._get_sync_mode_from_catalog(stream)
             if sync_mode == SyncMode.full_refresh:
-                configured_streams.append(StreamFacade.create_from_stream(stream, self, logger, self.MAX_WORKERS, None, NoopCursor()))
+                configured_streams.append(AsyncStreamFacade.create_from_stream(stream, self, logger, None, NoopCursor()))
             else:
                 configured_streams.append(stream)
         return configured_streams
@@ -165,7 +165,7 @@ class SourceSalesforce(AbstractSource):
         except AirbyteStopSync:
             logger.info(f"Finished syncing {self.name}")
 
-    def _read_stream(
+    async def _read_stream(
         self,
         logger: logging.Logger,
         stream_instance: Stream,
@@ -174,7 +174,8 @@ class SourceSalesforce(AbstractSource):
         internal_config: InternalConfig,
     ) -> Iterator[AirbyteMessage]:
         try:
-            yield from super()._read_stream(logger, stream_instance, configured_stream, state_manager, internal_config)
+            async for record in super()._read_stream(logger, stream_instance, configured_stream, state_manager, internal_config):
+                yield record
         except exceptions.HTTPError as error:
             error_data = error.response.json()[0]
             error_code = error_data.get("errorCode")
