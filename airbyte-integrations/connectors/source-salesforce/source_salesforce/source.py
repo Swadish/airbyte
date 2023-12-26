@@ -14,8 +14,6 @@ from airbyte_cdk.sources.abstract_source_async import AsyncAbstractSource
 from airbyte_cdk.sources.connector_state_manager import ConnectorStateManager
 from airbyte_cdk.sources.message import InMemoryMessageRepository
 from airbyte_cdk.sources.streams import Stream
-from airbyte_cdk.sources.streams.concurrent.adapters_async import AsyncStreamFacade
-from airbyte_cdk.sources.streams.concurrent.cursor import NoopCursor
 from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
 from airbyte_cdk.sources.utils.schema_helpers import InternalConfig
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
@@ -137,11 +135,7 @@ class SourceSalesforce(AsyncAbstractSource):
         # TODO: incorporate state & ConcurrentCursor when we support incremental
         configured_streams = []
         for stream in streams:
-            sync_mode = self._get_sync_mode_from_catalog(stream)
-            if sync_mode == SyncMode.full_refresh:
-                configured_streams.append(AsyncStreamFacade.create_from_stream(stream, self, logger, None, NoopCursor()))
-            else:
-                configured_streams.append(stream)
+            configured_streams.append(stream)
         return configured_streams
 
     def _get_sync_mode_from_catalog(self, stream: Stream) -> Optional[SyncMode]:
