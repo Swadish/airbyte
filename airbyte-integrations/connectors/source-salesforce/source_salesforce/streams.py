@@ -665,7 +665,7 @@ class IncrementalRestSalesforceStream(RestSalesforceStream, ABC):
             return pendulum.parse(start_date).strftime("%Y-%m-%dT%H:%M:%SZ")  # type: ignore[attr-defined,no-any-return]
         return None
 
-    def stream_slices(
+    async def stream_slices(
         self, *, sync_mode: SyncMode, cursor_field: List[str] = None, stream_state: Mapping[str, Any] = None
     ) -> Iterable[Optional[Mapping[str, Any]]]:
         start, end = (None, None)
